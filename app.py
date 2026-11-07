@@ -183,20 +183,26 @@ with onglet3:
         
         if st.form_submit_button("🚀 Enregistrer l'achat"):
             if n_ticker and n_nom and n_qte > 0:
+               # Le masque vérifie si la ligne exacte existe déjà
                 mask = (df_patrimoine["Ticker"] == n_ticker) & (df_patrimoine["Broker"] == n_broker) & (df_patrimoine["Enveloppe"] == n_env)
+
                 if mask.any():
+                    # SI OUI : On extrait les anciennes valeurs pour lisser le PRU
                     idx = df_patrimoine[mask].index
                     qte_existante = float(df_patrimoine.loc[idx, "Quantite"])
                     pru_existant = float(df_patrimoine.loc[idx, "PRU"])
-                    
+    
                     nouvelle_qte = qte_existante + n_qte
                     nouveau_pru = ((qte_existante * pru_existant) + (n_qte * n_pru)) / nouvelle_qte
-                    
+    
+                    # On écrase l'ancienne ligne avec les données mises à jour
                     df_patrimoine.loc[idx, "Quantite"] = nouvelle_qte
                     df_patrimoine.loc[idx, "PRU"] = nouveau_pru
                 else:
+                    # SI NON : On crée une toute nouvelle ligne à la fin du tableau
                     nouvel_actif = pd.DataFrame([{"Ticker": n_ticker, "Nom": n_nom, "Quantite": n_qte, "PRU": n_pru, "Enveloppe": n_env, "Theme": n_theme, "Broker": n_broker}])
                     df_patrimoine = pd.concat([df_patrimoine, nouvel_actif], ignore_index=True)
+
                 
                 conn.update(data=df_patrimoine)
                 st.success(f"✅ {n_nom} ajouté/renforcé avec succès !")
