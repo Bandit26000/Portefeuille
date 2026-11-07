@@ -95,7 +95,8 @@ def analyser_sous_compte(portefeuille, nom_affichage, categorie_graphique, type_
             prix_cloture = info_historique["Close"].iloc[-1]
             devise = ticker_data.info.get("currency", "EUR")
             
-            if devises == "USD":
+            # CORRECTION ICI : "devise" au singulier au lieu de "devises"
+            if devise == "USD":
                 prix_actuel_eur = prix_cloture * taux_usd_to_eur
             else:
                 prix_actuel_eur = prix_cloture
@@ -180,7 +181,7 @@ with onglet1:
         
         st.divider()
         
-        # 3. Graphique répartition par enveloppe (Mise à jour : Catégorie Cash isolée)
+        # 3. Graphique répartition par enveloppe
         st.subheader("Répartition par enveloppe")
         df_enveloppe = df.groupby("Type Enveloppe")["Valeur (€)"].sum().reset_index()
         
@@ -192,7 +193,7 @@ with onglet1:
             color_discrete_map={
                 "CTO": "#2563eb",   # Bleu
                 "PEA": "#10b981",   # Vert
-                "Cash": "#6b7280"   # Gris premium pour les liquidités
+                "Cash": "#6b7280"   # Gris
             }
         )
         fig_env.update_traces(textposition='inside', textinfo='percent')
@@ -203,3 +204,4 @@ with onglet1:
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
         )
         st.plotly_chart(fig_env, use_container_width=True)
+
