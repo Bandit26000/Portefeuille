@@ -93,9 +93,9 @@ for _, row in df_patrimoine.iterrows():
         plus_value = valeur_actuelle - cout_achat
         pourcentage_gain = (plus_value / cout_achat) * 100 if cout_achat > 0 else 0
         
-        total_actuel += valeur_actuelle
-        total_investi += cout_achat
-        
+    total_actuel += valeur_actuelle
+    total_investi += cout_achat
+    
     data_graphique.append({
         "Ticker": ticker, "Actif": nom, "Thème": theme,
         "Valeur (€)": valeur_actuelle, "PlusValue": plus_value,
@@ -113,24 +113,21 @@ else:
 # ------------------------------------------
 with onglet2:
     if not df_complet.empty:
-        # 1. SECTION DÉDIÉE AU CASH EN PREMIER
+        # 1. SECTION DÉDIÉE AU CASH EN PREMIER (Correction du doublon ici)
         df_cash = df_complet[df_complet["Ticker"] == "CASH_TR"]
         if not df_cash.empty:
             st.subheader("💵 Espèces & Liquidités")
             for _, r in df_cash.iterrows():
                 st.metric(label=f"{r['Actif']}", value=f"{r['Valeur (€)']:.2f} €")
-                # On ajoute la valeur brute du cash au total général
-                total_actuel += r['Valeur (€)']
             st.divider()
 
-        # 2. SECTION ACTIONS PAR COURTAGE (SANS LE CASH REGROUPÉ)
+        # 2. SECTION ACTIONS PAR COURTAGE
         df_actions = df_complet[df_complet["Ticker"] != "CASH_TR"]
         
         for b in df_actions["Broker"].unique():
             st.subheader(f"🏛️ {b}")
             df_b = df_actions[df_actions["Broker"] == b]
             
-            # Affichage des lignes d'actifs du broker
             for _, r in df_b.iterrows():
                 st.metric(
                     label=f"{r['Actif']} ({r['Ticker']}) — {r['Quantite']} parts | {r['Enveloppe']}",
@@ -138,7 +135,6 @@ with onglet2:
                     delta=f"{r['PlusValue']:.2f} € ({r['GainPct']:.1f}%)"
                 )
             
-            # Calcul et affichage du total pour ce courtier spécifique
             total_broker = df_b["Valeur (€)"].sum()
             st.markdown(f"**Total valorisation {b} :** `{total_broker:.2f} €`")
             st.divider()
