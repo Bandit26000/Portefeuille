@@ -145,21 +145,29 @@ with onglet1:
     if not df_complet.empty:
         couleurs = ['#2563eb', '#f97316', '#a855f7', '#10b981', '#ef4444', '#eab308', '#6366f1', '#ec4899', '#6b7280']
         
+        # 1. Graphique répartition par Actif (Optimisé Mobile avec Légende Horizontale Basse)
         st.subheader("Répartition par Actif")
         f1 = px.pie(df_complet, values="Valeur (€)", names="Actif", hole=0.5, color_discrete_sequence=couleurs)
-        f1.update_traces(textposition='outside', texttemplate='<b>%{label}</b><br>%{percent}')
-        f1.update_layout(showlegend=False, margin=dict(t=40, b=40, l=40, r=40), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        f1.update_traces(textposition='inside', textinfo='percent')  # Pourcentage à l'intérieur
+        f1.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5), # Légende centrée en bas
+            margin=dict(t=10, b=10, l=10, r=10),
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        )
         st.plotly_chart(f1, use_container_width=True)
         st.divider()
         
+        # 2. Graphique répartition par THÈME (Texte forcé à l'intérieur pour éviter les coupures)
         st.subheader("Répartition par Thème")
         df_t = df_complet.groupby("Thème")["Valeur (€)"].sum().reset_index()
         f2 = px.pie(df_t, values="Valeur (€)", names="Thème", hole=0.5, color_discrete_sequence=couleurs)
-        f2.update_traces(textposition='outside', texttemplate='<b>%{label}</b><br>%{percent}')
-        f2.update_layout(showlegend=False, margin=dict(t=40, b=40, l=40, r=40), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        f2.update_traces(textposition='inside', textinfo='percent+label') # Tout est au chaud à l'intérieur de la part
+        f2.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(f2, use_container_width=True)
         st.divider()
         
+        # 3. Graphique répartition par enveloppe
         st.subheader("Répartition par enveloppe")
         df_e = df_complet.groupby("Type Enveloppe")["Valeur (€)"].sum().reset_index()
         f3 = px.pie(df_e, values="Valeur (€)", names="Type Enveloppe", hole=0, color_discrete_map={"CTO": "#2563eb", "PEA": "#10b981", "Cash": "#6b7280"})
@@ -186,25 +194,21 @@ with onglet3:
             if n_ticker and n_nom and n_qte > 0:
                 montant_total_achat = n_qte * n_pru
                 
-                # Vérifier si l'action existe déjà pour lisser le PRU
                 mask = (df_patrimoine["Ticker"] == n_ticker) & (df_patrimoine["Broker"] == n_broker) & (df_patrimoine["Enveloppe"] == n_env)
                 if mask.any():
                     idx = df_patrimoine[mask].index
                     qte_existante = float(df_patrimoine.loc[idx, "Quantite"].iloc[0])
                     pru_existant = float(df_patrimoine.loc[idx, "PRU"].iloc[0])
                     
-                    # Formule du PRU lissé pondéré
                     nouvelle_qte = qte_existante + n_qte
                     nouveau_pru = ((qte_existante * pru_existant) + (n_qte * n_pru)) / nouvelle_qte
                     
                     df_patrimoine.loc[idx, "Quantite"] = nouvelle_qte
                     df_patrimoine.loc[idx, "PRU"] = nouveau_pru
                 else:
-                    # Si c'est un nouvel actif, on crée une nouvelle ligne
                     nouvel_actif = pd.DataFrame([{"Ticker": n_ticker, "Nom": n_nom, "Quantite": n_qte, "PRU": n_pru, "Enveloppe": n_env, "Theme": n_theme, "Broker": n_broker}])
                     df_patrimoine = pd.concat([df_patrimoine, nouvel_actif], ignore_index=True)
                 
-                # Déduction automatique des espèces de Trade Republic (CASH_TR)
                 if deduire_du_cash:
                     mask_cash = (df_patrimoine["Ticker"] == "CASH_TR")
                     if mask_cash.any():
