@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 from streamlit_gsheets import GSheetsConnection
 
-# Configuration de la page 
+# Configuration de la page
 st.set_page_config(page_title="Mon Patrimoine Automatique", page_icon="🏦", layout="centered")
 
 st.title("Patrimoine total")
@@ -34,7 +34,7 @@ INFOS_ENTREPRISES = {
     "NBIS": {"nom": "Nebius Group", "theme": "Technologie"},
     "NOK": {"nom": "Nokia", "theme": "Technologie"},
     "VIE.PA": {"nom": "Veolia", "theme": "Énergie"},
-    "CASH_TR": {"nom": "Liquidités", "theme": "Liquidités"}
+    "CASH_TR": {"nom": "Espèces / Liquidités", "theme": "Liquidités"}
 }
 
 # ==========================================
@@ -113,18 +113,34 @@ else:
 # ------------------------------------------
 with onglet2:
     if not df_complet.empty:
-        for b in df_complet["Broker"].unique():
-            st.subheader(b)
-            df_b = df_complet[df_complet["Broker"] == b]
+        # 1. SECTION DÉDIÉE AU CASH EN PREMIER
+        df_cash = df_complet[df_complet["Ticker"] == "CASH_TR"]
+        if not df_cash.empty:
+            st.subheader("💵 Espèces & Liquidités")
+            for _, r in df_cash.iterrows():
+                st.metric(label=f"{r['Actif']}", value=f"{r['Valeur (€)']:.2f} €")
+                # On ajoute la valeur brute du cash au total général
+                total_actuel += r['Valeur (€)']
+            st.divider()
+
+        # 2. SECTION ACTIONS PAR COURTAGE (SANS LE CASH REGROUPÉ)
+        df_actions = df_complet[df_complet["Ticker"] != "CASH_TR"]
+        
+        for b in df_actions["Broker"].unique():
+            st.subheader(f"🏛️ {b}")
+            df_b = df_actions[df_actions["Broker"] == b]
+            
+            # Affichage des lignes d'actifs du broker
             for _, r in df_b.iterrows():
-                if r["Ticker"] == "CASH_TR":
-                    st.metric(label=f"{r['Actif']} — Disponible", value=f"{r['Valeur (€)']:.2f} €")
-                else:
-                    st.metric(
-                        label=f"{r['Actif']} ({r['Ticker']}) — {r['Quantite']} parts | {r['Enveloppe']}",
-                        value=f"{r['Valeur (€)']:.2f} €",
-                        delta=f"{r['PlusValue']:.2f} € ({r['GainPct']:.1f}%)"
-                    )
+                st.metric(
+                    label=f"{r['Actif']} ({r['Ticker']}) — {r['Quantite']} parts | {r['Enveloppe']}",
+                    value=f"{r['Valeur (€)']:.2f} €",
+                    delta=f"{r['PlusValue']:.2f} € ({r['GainPct']:.1f}%)"
+                )
+            
+            # Calcul et affichage du total pour ce courtier spécifique
+            total_broker = df_b["Valeur (€)"].sum()
+            st.markdown(f"**Total valorisation {b} :** `{total_broker:.2f} €`")
             st.divider()
     else:
         st.info("Aucun actif en portefeuille actuellement.")
@@ -145,51 +161,26 @@ with onglet1:
     if not df_complet.empty:
         couleurs = ['#2563eb', '#f97316', '#a855f7', '#10b981', '#ef4444', '#eab308', '#6366f1', '#ec4899', '#6b7280']
         
-        # 1. Graphique répartition par Actif (Centré avec étiquettes extérieures ajustées pour mobile)
         st.subheader("Répartition par Actif")
         f1 = px.pie(df_complet, values="Valeur (€)", names="Actif", hole=0.4, color_discrete_sequence=couleurs)
-        f1.update_traces(
-            textposition='outside', 
-            texttemplate='<b>%{label}</b><br>%{percent}',
-            insidetextorientation='radial'
-        )
-        f1.update_layout(
-            showlegend=False, 
-            margin=dict(t=50, b=50, l=60, r=60), # Larges marges latérales pour que le texte rentre sur l'écran
-            font=dict(size=10), # Taille idéale pour l'affichage mobile
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-        )
+        f1.update_traces(textposition='outside', texttemplate='<b>%{label}</b><br>%{percent}')
+        f1.update_layout(showlegend=False, margin=dict(t=50, b=50, l=60, r=60), font=dict(size=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(f1, use_container_width=True)
         st.divider()
         
-        # 2. Graphique répartition par THÈME (Centré à l'extérieur sans coupure)
         st.subheader("Répartition par Thème")
         df_t = df_complet.groupby("Thème")["Valeur (€)"].sum().reset_index()
         f2 = px.pie(df_t, values="Valeur (€)", names="Thème", hole=0.4, color_discrete_sequence=couleurs)
-        f2.update_traces(
-            textposition='outside', 
-            texttemplate='<b>%{label}</b><br>%{percent}'
-        )
-        f2.update_layout(
-            showlegend=False, 
-            margin=dict(t=50, b=50, l=60, r=60), 
-            font=dict(size=10),
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-        )
+        f2.update_traces(textposition='outside', texttemplate='<b>%{label}</b><br>%{percent}')
+        f2.update_layout(showlegend=False, margin=dict(t=50, b=50, l=60, r=60), font=dict(size=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(f2, use_container_width=True)
         st.divider()
         
-        # 3. Graphique répartition par enveloppe
         st.subheader("Répartition par enveloppe")
         df_e = df_complet.groupby("Type Enveloppe")["Valeur (€)"].sum().reset_index()
         f3 = px.pie(df_e, values="Valeur (€)", names="Type Enveloppe", hole=0, color_discrete_map={"CTO": "#2563eb", "PEA": "#10b981", "Cash": "#6b7280"})
         f3.update_traces(textposition='inside', textinfo='percent')
-        f3.update_layout(
-            showlegend=True, 
-            legend=dict(x=0.99, y=0.01, xanchor="right", yanchor="bottom"), 
-            margin=dict(t=20, b=20, l=20, r=20), 
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-        )
+        f3.update_layout(showlegend=True, legend=dict(x=0.99, y=0.01, xanchor="right", yanchor="bottom"), margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(f3, use_container_width=True)
 
 # ------------------------------------------
