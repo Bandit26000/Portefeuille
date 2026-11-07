@@ -16,7 +16,7 @@ INFOS_ENTREPRISES = {
     "SNDK": {"nom": "SanDisk", "theme": "Technologie"},
     "MP": {"nom": "MP Materials", "theme": "Matériaux"},
     "SU.PA": {"nom": "Schneider Electric", "theme": "Énergie"},
-    "PPFB.DE": {"nom": "iShares Gold", "theme": "Matières premières"},
+    "PPFB.DE": {"nom": "Or", "theme": "Matières premières"},
     "NBIS": {"nom": "Nebius Group", "theme": "Technologie"},
     "NOK": {"nom": "Nokia", "theme": "Technologie"},
     "VIE.PA": {"nom": "Veolia", "theme": "Énergie"},
