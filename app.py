@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 from streamlit_gsheets import GSheetsConnection
 
-# Configuration de la page
+# Configuration de la page 
 st.set_page_config(page_title="Mon Patrimoine Automatique", page_icon="🏦", layout="centered")
 
 st.title("Patrimoine total")
