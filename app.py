@@ -26,7 +26,6 @@ INFOS_ENTREPRISES = {
 # ==========================================
 # 1. COMPTES-TITRES : VOS VRAIS ACTIFS
 # ==========================================
-# Vos liquidités de 333,85 € sont ajoutées ici avec un PRU de 1.0
 tr_cto = {
     "RKLB": {"quantite": 18, "pru_eur": 61.38},
     "SNDK": {"quantite": 0.583094, "pru_eur": 858.87},
@@ -76,7 +75,9 @@ def analyser_sous_compte(portefeuille, nom_affichage, categorie_graphique, type_
     for ticker, infos in portefeuille.items():
         info_ent = INFOS_ENTREPRISES.get(ticker, {"nom": ticker, "theme": "Inconnu"})
         
-        # Si c'est du cash, la valeur actuelle est fixe et égale à la quantité d'euros
+        # Si c'est du cash, sa catégorie d'enveloppe finale devient "Cash" au lieu de "CTO"
+        enveloppe_active = "Cash" if ticker == "CASH_TR" else type_enveloppe
+        
         if ticker == "CASH_TR":
             prix_actuel_eur = 1.0
             valeur_actuelle_ligne = infos["quantite"]
@@ -94,7 +95,7 @@ def analyser_sous_compte(portefeuille, nom_affichage, categorie_graphique, type_
             prix_cloture = info_historique["Close"].iloc[-1]
             devise = ticker_data.info.get("currency", "EUR")
             
-            if devise == "USD":
+            if devises == "USD":
                 prix_actuel_eur = prix_cloture * taux_usd_to_eur
             else:
                 prix_actuel_eur = prix_cloture
@@ -113,10 +114,9 @@ def analyser_sous_compte(portefeuille, nom_affichage, categorie_graphique, type_
             "Thème": info_ent["theme"],
             "Valeur (€)": valeur_actuelle_ligne,
             "Enveloppe": categorie_graphique,
-            "Type Enveloppe": type_enveloppe
+            "Type Enveloppe": enveloppe_active
         })
         
-        # Affichage métrique adapté
         if ticker == "CASH_TR":
             st.metric(
                 label=f"{info_ent['nom']} — Disponible sur le compte",
@@ -169,7 +169,7 @@ with onglet1:
         
         st.divider()
         
-        # 2. Graphique répartition par THÈME (avec bloc Liquidités)
+        # 2. Graphique répartition par THÈME
         st.subheader("Répartition par Thème")
         df_themes = df.groupby("Thème")["Valeur (€)"].sum().reset_index()
         
@@ -180,7 +180,7 @@ with onglet1:
         
         st.divider()
         
-        # 3. Graphique répartition par type d'enveloppe (Le Cash augmente la part du CTO)
+        # 3. Graphique répartition par enveloppe (Mise à jour : Catégorie Cash isolée)
         st.subheader("Répartition par enveloppe")
         df_enveloppe = df.groupby("Type Enveloppe")["Valeur (€)"].sum().reset_index()
         
@@ -189,7 +189,11 @@ with onglet1:
             values="Valeur (€)", 
             names="Type Enveloppe", 
             hole=0, 
-            color_discrete_map={"CTO": "#2563eb", "PEA": "#10b981"}
+            color_discrete_map={
+                "CTO": "#2563eb",   # Bleu
+                "PEA": "#10b981",   # Vert
+                "Cash": "#6b7280"   # Gris premium pour les liquidités
+            }
         )
         fig_env.update_traces(textposition='inside', textinfo='percent')
         fig_env.update_layout(
@@ -199,4 +203,3 @@ with onglet1:
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
         )
         st.plotly_chart(fig_env, use_container_width=True)
-
