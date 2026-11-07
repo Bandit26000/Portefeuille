@@ -93,9 +93,9 @@ for _, row in df_patrimoine.iterrows():
         plus_value = valeur_actuelle - cout_achat
         pourcentage_gain = (plus_value / cout_achat) * 100 if cout_achat > 0 else 0
         
-    total_actuel += valeur_actuelle
-    total_investi += cout_achat
-    
+        total_actuel += valeur_actuelle
+        total_investi += cout_achat
+        
     data_graphique.append({
         "Ticker": ticker, "Actif": nom, "Thème": theme,
         "Valeur (€)": valeur_actuelle, "PlusValue": plus_value,
@@ -145,25 +145,37 @@ with onglet1:
     if not df_complet.empty:
         couleurs = ['#2563eb', '#f97316', '#a855f7', '#10b981', '#ef4444', '#eab308', '#6366f1', '#ec4899', '#6b7280']
         
-        # 1. Graphique répartition par Actif (Optimisé Mobile avec Légende Horizontale Basse)
+        # 1. Graphique répartition par Actif (Centré avec étiquettes extérieures ajustées pour mobile)
         st.subheader("Répartition par Actif")
-        f1 = px.pie(df_complet, values="Valeur (€)", names="Actif", hole=0.5, color_discrete_sequence=couleurs)
-        f1.update_traces(textposition='inside', textinfo='percent')  # Pourcentage à l'intérieur
+        f1 = px.pie(df_complet, values="Valeur (€)", names="Actif", hole=0.4, color_discrete_sequence=couleurs)
+        f1.update_traces(
+            textposition='outside', 
+            texttemplate='<b>%{label}</b><br>%{percent}',
+            insidetextorientation='radial'
+        )
         f1.update_layout(
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5), # Légende centrée en bas
-            margin=dict(t=10, b=10, l=10, r=10),
+            showlegend=False, 
+            margin=dict(t=50, b=50, l=60, r=60), # Larges marges latérales pour que le texte rentre sur l'écran
+            font=dict(size=10), # Taille idéale pour l'affichage mobile
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
         )
         st.plotly_chart(f1, use_container_width=True)
         st.divider()
         
-        # 2. Graphique répartition par THÈME (Texte forcé à l'intérieur pour éviter les coupures)
+        # 2. Graphique répartition par THÈME (Centré à l'extérieur sans coupure)
         st.subheader("Répartition par Thème")
         df_t = df_complet.groupby("Thème")["Valeur (€)"].sum().reset_index()
-        f2 = px.pie(df_t, values="Valeur (€)", names="Thème", hole=0.5, color_discrete_sequence=couleurs)
-        f2.update_traces(textposition='inside', textinfo='percent+label') # Tout est au chaud à l'intérieur de la part
-        f2.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        f2 = px.pie(df_t, values="Valeur (€)", names="Thème", hole=0.4, color_discrete_sequence=couleurs)
+        f2.update_traces(
+            textposition='outside', 
+            texttemplate='<b>%{label}</b><br>%{percent}'
+        )
+        f2.update_layout(
+            showlegend=False, 
+            margin=dict(t=50, b=50, l=60, r=60), 
+            font=dict(size=10),
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        )
         st.plotly_chart(f2, use_container_width=True)
         st.divider()
         
@@ -172,7 +184,12 @@ with onglet1:
         df_e = df_complet.groupby("Type Enveloppe")["Valeur (€)"].sum().reset_index()
         f3 = px.pie(df_e, values="Valeur (€)", names="Type Enveloppe", hole=0, color_discrete_map={"CTO": "#2563eb", "PEA": "#10b981", "Cash": "#6b7280"})
         f3.update_traces(textposition='inside', textinfo='percent')
-        f3.update_layout(showlegend=True, legend=dict(x=0.99, y=0.01, xanchor="right", yanchor="bottom"), margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        f3.update_layout(
+            showlegend=True, 
+            legend=dict(x=0.99, y=0.01, xanchor="right", yanchor="bottom"), 
+            margin=dict(t=20, b=20, l=20, r=20), 
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        )
         st.plotly_chart(f3, use_container_width=True)
 
 # ------------------------------------------
