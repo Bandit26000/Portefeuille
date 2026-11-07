@@ -31,7 +31,7 @@ INFOS_ENTREPRISES = {
     "MP": {"nom": "MP Materials", "theme": "Matériaux"},
     "SU.PA": {"nom": "Schneider Electric", "theme": "Énergie"},
     "PPFB.DE": {"nom": "Or", "theme": "Matières premières"},
-    "NBIS": {"nom": "Nebius Group", "theme": "Technologie"},
+    "NBIS": {"nom": "Nebius", "theme": "Technologie"},
     "NOK": {"nom": "Nokia", "theme": "Technologie"},
     "VIE.PA": {"nom": "Veolia", "theme": "Énergie"},
     "CASH_TR": {"nom": "Espèces / Liquidités", "theme": "Liquidités"}
