@@ -31,7 +31,7 @@ INFOS_ENTREPRISES = {
     "MP": {"nom": "MP Materials", "theme": "Matériaux"},
     "SU.PA": {"nom": "Schneider Electric", "theme": "Énergie"},
     "PPFB.DE": {"nom": "Or", "theme": "Matières premières"},
-    "NBIS": {"nom": "Nebius", "theme": "Technologie"},
+    "NBIS": {"nom": "Nebius Group", "theme": "Technologie"},
     "NOK": {"nom": "Nokia", "theme": "Technologie"},
     "VIE.PA": {"nom": "Veolia", "theme": "Énergie"},
     "CASH_TR": {"nom": "Espèces / Liquidités", "theme": "Liquidités"}
@@ -113,7 +113,7 @@ else:
 # ------------------------------------------
 with onglet2:
     if not df_complet.empty:
-        # 1. SECTION DÉDIÉE AU CASH EN PREMIER (Correction du doublon ici)
+        # 1. SECTION DÉDIÉE AU CASH EN PREMIER
         df_cash = df_complet[df_complet["Ticker"] == "CASH_TR"]
         if not df_cash.empty:
             st.subheader("💵 Espèces & Liquidités")
@@ -187,7 +187,7 @@ with onglet3:
     with st.form("ajout_actif_form", clear_on_submit=True):
         n_broker = st.selectbox("Courtier / Broker", ["Trade Republic", "XTB"])
         n_env = st.selectbox("Enveloppe fiscale", ["CTO", "PEA"])
-        n_ticker = st.text_input("Ticker Yahoo (ex: RKLB, SU.PA, NVDA)").upper().strip()
+        n_ticker = st.text_input("Ticker Yahoo (ex: RKLB, SU.PA, NVDA, CAT)").upper().strip()
         n_nom = st.text_input("Nom de l'entreprise")
         n_theme = st.selectbox("Thème / Secteur", ["Aérospatial", "Technologie", "Matériaux", "Énergie", "Matières premières", "Liquidités"])
         n_qte = st.number_input("Quantité achetée", min_value=0.000001, format="%.6f", step=0.01)
@@ -201,6 +201,7 @@ with onglet3:
                 mask = (df_patrimoine["Ticker"] == n_ticker) & (df_patrimoine["Broker"] == n_broker) & (df_patrimoine["Enveloppe"] == n_env)
                 if mask.any():
                     idx = df_patrimoine[mask].index
+                    # CORRECTION ICI : .iloc[0] au lieu de .iloc seul
                     qte_existante = float(df_patrimoine.loc[idx, "Quantite"].iloc[0])
                     pru_existant = float(df_patrimoine.loc[idx, "PRU"].iloc[0])
                     
