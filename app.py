@@ -34,7 +34,7 @@ INFOS_ENTREPRISES = {
     "NBIS": {"nom": "Nebius Group", "theme": "Technologie"},
     "NOK": {"nom": "Nokia", "theme": "Technologie"},
     "VIE.PA": {"nom": "Veolia", "theme": "Énergie"},
-    "CASH_TR": {"nom": "Espèces / Liquidités", "theme": "Liquidités"}
+    "CASH_TR": {"nom": "Liquidités", "theme": "Liquidités"}
 }
 
 # ==========================================
