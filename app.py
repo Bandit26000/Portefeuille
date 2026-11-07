@@ -180,59 +180,44 @@ with onglet1:
         st.plotly_chart(f3, use_container_width=True)
 
 # ------------------------------------------
-# CONTENU DE L'ONGLET 3 : FORMULAIRE D'ACHAT
+# CONTENU DE L'ONGLET 3 : FORMULAIRE D'ACHAT SÉCURISÉ (ASSISTANT DE COPIE)
 # ------------------------------------------
 with onglet3:
-    st.subheader("➕ Acheter / Ajouter une ligne")
-    with st.form("ajout_actif_form", clear_on_submit=True):
-        n_broker = st.selectbox("Courtier / Broker", ["Trade Republic", "XTB"])
-        n_env = st.selectbox("Enveloppe fiscale", ["CTO", "PEA"])
-        n_ticker = st.text_input("Ticker Yahoo (ex: RKLB, SU.PA, NVDA, CAT)").upper().strip()
-        n_nom = st.text_input("Nom de l'entreprise")
-        n_theme = st.selectbox("Thème / Secteur", ["Aérospatial", "Technologie", "Matériaux", "Énergie", "Matières premières", "Liquidités"])
-        n_qte = st.number_input("Quantité achetée", min_value=0.000001, format="%.6f", step=0.01)
-        n_pru = st.number_input("Prix de Revient Unitaire (PRU en €)", min_value=0.01, step=0.1)
-        deduire_du_cash = st.checkbox("💵 Soustraire automatiquement le montant total de vos 'Espèces / Liquidités'", value=True)
-        
-        if st.form_submit_button("🚀 Enregistrer l'achat"):
-            if n_ticker and n_nom and n_qte > 0:
-                montant_total_achat = n_qte * n_pru
+    st.subheader("➕ Assistant d'Achat")
+    st.markdown("Calculez instantanément votre PRU lissé ou générez la ligne exacte à copier-coller dans votre application Google Sheets.")
+    
+    n_broker = st.selectbox("Courtier / Broker", ["Trade Republic", "XTB"])
+    n_env = st.selectbox("Enveloppe fiscale", ["CTO", "PEA"])
+    n_ticker = st.text_input("Ticker Yahoo (ex: CAT, RKLB, NVDA)").upper().strip()
+    n_nom = st.text_input("Nom de l'entreprise")
+    n_theme = st.selectbox("Thème / Secteur", ["Aérospatial", "Technologie", "Matériaux", "Énergie", "Matières premières", "Liquidités"])
+    n_qte = st.number_input("Quantité achetée", min_value=0.000001, format="%.6f", step=0.01)
+    n_pru = st.number_input("Prix d'achat unitaire (€)", min_value=0.01, step=0.1)
+    
+    if st.button("📊 Générer la ligne pour Sheets"):
+        if n_ticker and n_qte > 0:
+            mask = (df_patrimoine["Ticker"] == n_ticker) & (df_patrimoine["Broker"] == n_broker) & (df_patrimoine["Enveloppe"] == n_env)
+            if mask.any():
+                idx = df_patrimoine[mask].index
+                qte_existante = float(df_patrimoine.loc[idx, "Quantite"].iloc[0])
+                pru_existant = float(df_patrimoine.loc[idx, "PRU"].iloc[0])
                 
-                mask = (df_patrimoine["Ticker"] == n_ticker) & (df_patrimoine["Broker"] == n_broker) & (df_patrimoine["Enveloppe"] == n_env)
-                if mask.any():
-                    idx = df_patrimoine[mask].index
-                    # CORRECTION ICI : .iloc[0] au lieu de .iloc seul
-                    qte_existante = float(df_patrimoine.loc[idx, "Quantite"].iloc[0])
-                    pru_existant = float(df_patrimoine.loc[idx, "PRU"].iloc[0])
-                    
-                    nouvelle_qte = qte_existante + n_qte
-                    nouveau_pru = ((qte_existante * pru_existant) + (n_qte * n_pru)) / nouvelle_qte
-                    
-                    df_patrimoine.loc[idx, "Quantite"] = nouvelle_qte
-                    df_patrimoine.loc[idx, "PRU"] = nouveau_pru
-                else:
-                    nouvel_actif = pd.DataFrame([{"Ticker": n_ticker, "Nom": n_nom, "Quantite": n_qte, "PRU": n_pru, "Enveloppe": n_env, "Theme": n_theme, "Broker": n_broker}])
-                    df_patrimoine = pd.concat([df_patrimoine, nouvel_actif], ignore_index=True)
+                nouvelle_qte = qte_existante + n_qte
+                nouveau_pru = ((qte_existante * pru_existant) + (n_qte * n_pru)) / nouvelle_qte
                 
-                if deduire_du_cash:
-                    mask_cash = (df_patrimoine["Ticker"] == "CASH_TR")
-                    if mask_cash.any():
-                        idx_cash = df_patrimoine[mask_cash].index
-                        cash_actuel = float(df_patrimoine.loc[idx_cash, "Quantite"].iloc[0])
-                        df_patrimoine.loc[idx_cash, "Quantite"] = max(0.0, cash_actuel - montant_total_achat)
-                
-                # Envoi des données vers Google Sheets
-                conn.update(data=df_patrimoine)
-                st.success(f"✅ {n_nom} enregistré et liquidités actualisées !")
-                st.rerun()
+                st.success("🔄 Ligne existante détectée ! Dans votre Sheets, modifiez la ligne de cet actif avec ces valeurs :")
+                st.code(f"Nouvelle Quantité : {nouvelle_qte:.6f}  |  Nouveau PRU Lissé : {nouveau_pru:.2f}")
             else:
-                st.error("❌ Veuillez remplir les cases Ticker, Nom et Quantité.")
+                st.info("🆕 Nouvel actif ! Copiez la ligne ci-dessous et collez-la tout en bas de votre fichier Google Sheets :")
+                st.code(f"{n_ticker}\t{n_nom}\t{n_qte}\t{n_pru}\t{n_env}\t{n_theme}\t{n_broker}")
+            
+            st.caption(f"💡 Coût total de l'opération : {n_qte * n_pru:.2f} €")
 
 # ------------------------------------------
-# CONTENU DE L'ONGLET 4 : FORMULAIRE DE VENTE
+# CONTENU DE L'ONGLET 4 : FORMULAIRE DE VENTE SÉCURISÉ
 # ------------------------------------------
 with onglet4:
-    st.subheader("➖ Vendre / Alléger une ligne")
+    st.subheader("➖ Assistant de Vente")
     
     if not df_complet.empty:
         lignes_vendables = df_complet[df_complet["Ticker"] != "CASH_TR"]
@@ -240,38 +225,26 @@ with onglet4:
         lignes_vendables = pd.DataFrame()
     
     if not lignes_vendables.empty:
-        options_vente = lignes_vendables.apply(lambda r: f"{r['Actif']} ({r['Ticker']}) — {r['Quantite']:.4f} parts dispos [{r['Broker']}]", axis=1).tolist()
+        options_vente = lignes_vendables.apply(lambda r: f"{r['Actif']} ({r['Ticker']}) — {r['Quantite']:.4f} parts dispos", axis=1).tolist()
         choix_actif = st.selectbox("Sélectionnez la ligne à vendre", options_vente)
+        
         idx_selectionne = options_vente.index(choix_actif)
         actif_a_vendre = lignes_vendables.iloc[idx_selectionne]
         
-        with st.form("vente_actif_form", clear_on_submit=True):
-            v_qte = st.number_input("Quantité à vendre", min_value=0.000001, max_value=float(actif_a_vendre["Quantite"]), format="%.6f", step=0.01)
-            v_prix = st.number_input("Prix de vente unitaire (€)", min_value=0.01, step=0.1, value=float(actif_a_vendre["PRU"]))
-            basculer_en_cash = st.checkbox("💵 Transférer automatiquement l'argent récupéré dans vos 'Espèces / Liquidités'", value=True)
+        v_qte = st.number_input("Quantité vendue", min_value=0.000001, max_value=float(actif_a_vendre["Quantite"]), format="%.6f", step=0.01)
+        v_prix = st.number_input("Prix de vente unitaire (€)", min_value=0.01, step=0.1, value=float(actif_a_vendre["PRU"]))
+        
+        if st.button("🔥 Calculer l'allègement"):
+            ancienne_qte = float(actif_a_vendre["Quantite"])
+            nouvelle_qte = ancienne_qte - v_qte
+            montant_recupere = v_qte * v_prix
             
-            if st.form_submit_button("🔥 Confirmer la vente"):
-                mask_sheets = (df_patrimoine["Ticker"] == actif_a_vendre["Ticker"]) & (df_patrimoine["Broker"] == actif_a_vendre["Broker"])
-                idx_sheets = df_patrimoine[mask_sheets].index
-                
-                # Correction pour éviter l'erreur de série d'index dans .loc
-                ancienne_qte = float(df_patrimoine.loc[idx_sheets[0], "Quantite"])
-                nouvelle_qte = ancienne_qte - v_qte
-                montant_recupere = v_qte * v_prix
-                
-                if nouvelle_qte <= 0.0001:
-                    df_patrimoine = df_patrimoine.drop(idx_sheets)
-                else:
-                    df_patrimoine.loc[idx_sheets, "Quantite"] = nouvelle_qte
-                
-                if basculer_en_cash:
-                    mask_cash = (df_patrimoine["Ticker"] == "CASH_TR")
-                    if mask_cash.any():
-                        idx_cash = df_patrimoine[mask_cash].index
-                        df_patrimoine.loc[idx_cash, "Quantite"] = float(df_patrimoine.loc[idx_cash[0], "Quantite"]) + montant_recupere
-                
-                conn.update(data=df_patrimoine)
-                st.success("🎉 Vente enregistrée avec succès !")
-                st.rerun()
+            if nouvelle_qte <= 0.0001:
+                st.error(f"🗑️ Vente totale ! Vous devez **supprimer complètement la ligne** de {actif_a_vendre['Actif']} dans votre Google Sheets.")
+            else:
+                st.success(f"📉 Vente partielle ! Dans votre Google Sheets, remplacez l'ancienne quantité de {actif_a_vendre['Actif']} par : `{nouvelle_qte:.6f}`")
+            
+            st.caption(f"💰 Argent généré par la vente : +{montant_recupere:.2f} € (à rajouter manuellement à votre ligne CASH_TR)")
     else:
-        st.info("Aucune action ou ETF en portefeuille à vendre pour le moment.")
+        st.info("Aucune action en portefeuille à vendre pour le moment.")
+
