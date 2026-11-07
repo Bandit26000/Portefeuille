@@ -180,32 +180,41 @@ with onglet3:
         n_theme = st.selectbox("Thème / Secteur", ["Aérospatial", "Technologie", "Matériaux", "Énergie", "Matières premières", "Liquidités"])
         n_qte = st.number_input("Quantité achetée", min_value=0.000001, format="%.6f", step=0.01)
         n_pru = st.number_input("Prix de Revient Unitaire (PRU en €)", min_value=0.01, step=0.1)
+        deduire_du_cash = st.checkbox("💵 Soustraire automatiquement le montant total de vos 'Espèces / Liquidités'", value=True)
         
         if st.form_submit_button("🚀 Enregistrer l'achat"):
             if n_ticker and n_nom and n_qte > 0:
-               # Le masque vérifie si la ligne exacte existe déjà
+                montant_total_achat = n_qte * n_pru
+                
+                # Vérifier si l'action existe déjà pour lisser le PRU
                 mask = (df_patrimoine["Ticker"] == n_ticker) & (df_patrimoine["Broker"] == n_broker) & (df_patrimoine["Enveloppe"] == n_env)
-
                 if mask.any():
-                    # SI OUI : On extrait les anciennes valeurs pour lisser le PRU
                     idx = df_patrimoine[mask].index
-                    qte_existante = float(df_patrimoine.loc[idx, "Quantite"])
-                    pru_existant = float(df_patrimoine.loc[idx, "PRU"])
-    
+                    qte_existante = float(df_patrimoine.loc[idx, "Quantite"].iloc[0])
+                    pru_existant = float(df_patrimoine.loc[idx, "PRU"].iloc[0])
+                    
+                    # Formule du PRU lissé pondéré
                     nouvelle_qte = qte_existante + n_qte
                     nouveau_pru = ((qte_existante * pru_existant) + (n_qte * n_pru)) / nouvelle_qte
-    
-                    # On écrase l'ancienne ligne avec les données mises à jour
+                    
                     df_patrimoine.loc[idx, "Quantite"] = nouvelle_qte
                     df_patrimoine.loc[idx, "PRU"] = nouveau_pru
                 else:
-                    # SI NON : On crée une toute nouvelle ligne à la fin du tableau
+                    # Si c'est un nouvel actif, on crée une nouvelle ligne
                     nouvel_actif = pd.DataFrame([{"Ticker": n_ticker, "Nom": n_nom, "Quantite": n_qte, "PRU": n_pru, "Enveloppe": n_env, "Theme": n_theme, "Broker": n_broker}])
                     df_patrimoine = pd.concat([df_patrimoine, nouvel_actif], ignore_index=True)
-
                 
+                # Déduction automatique des espèces de Trade Republic (CASH_TR)
+                if deduire_du_cash:
+                    mask_cash = (df_patrimoine["Ticker"] == "CASH_TR")
+                    if mask_cash.any():
+                        idx_cash = df_patrimoine[mask_cash].index
+                        cash_actuel = float(df_patrimoine.loc[idx_cash, "Quantite"].iloc[0])
+                        df_patrimoine.loc[idx_cash, "Quantite"] = max(0.0, cash_actuel - montant_total_achat)
+                
+                # Envoi des données vers Google Sheets
                 conn.update(data=df_patrimoine)
-                st.success(f"✅ {n_nom} ajouté/renforcé avec succès !")
+                st.success(f"✅ {n_nom} enregistré et liquidités actualisées !")
                 st.rerun()
             else:
                 st.error("❌ Veuillez remplir les cases Ticker, Nom et Quantité.")
